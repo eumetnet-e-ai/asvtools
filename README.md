@@ -467,7 +467,7 @@ IODIR structure:
                   |output
              |output 
 ------------------------------------
-'iodir' is inside your workdir. Structure will be created automatically. 
+The input-output-directory 'iodir' is inside your workdir. Structure will be created automatically. 
 
 ## License
 
@@ -512,7 +512,8 @@ We thank colleges at DWD, Stefan Dahlke, Bernhard A. Schmitt (both University Ma
 Quinting (KIT; now University of Cologne) and Kevin Gramlich (KIT) for their useful suggestions, 
 advise, ideas and the professional exchange in general.
 
-We also thank the "BMV-Forschungsnetzwerk" for the funding of the project.
+We also thank the [BMV-Forschungsnetzwerk](https://www.bmv-forschungsnetzwerk.bund.de/) for the 
+funding of the project.
 
 
 
