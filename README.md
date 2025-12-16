@@ -70,13 +70,13 @@ A useful set of commandline tools to handle and transform atmospheric data from 
 See README of package there. Python bindings of cdo are not required.
 
 IMPORTANT:  
-    Make sure that the "configure" command contains a denotation of the ecCodes and netCDF paths. 
-    This should be possible by the following command version:
-        ```          
+Make sure that the "configure" command contains a denotation of the ecCodes and netCDF paths. 
+This should be possible by the following command version:
+	         
         ./configure --with-eccodes="PATH_TO_ECCODES_DIR"  --with-netcdf="PATH_TO_NETCDF_DIR"
-        ```
-    Please see also the latest CDO installation information to include ecCodes and netCDF.
-    Of course, netcdf and eccodes must be installed before.
+
+Please see also the latest CDO installation information to include ecCodes and netCDF.
+Of course, netcdf and eccodes must be installed before.
 
 
 ### d) Python + packages
@@ -100,9 +100,8 @@ in particular CUDA. We noticed some difficulties with the CUDAExecutionProvider.
 will be an installation of cuda and cudnn in python via onnxruntime-gpu itself. We explicitly 
 recommand this by using the following command:  
 
-        ```
         pip install onnxruntime-gpu[cuda,cudnn]
-        ```
+
 
 Evtually see the CUDAExecutionProvider relevant sections in the 'run_pangu_X.py' files and read the 
 [onnxruntime docs](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html).
@@ -112,11 +111,10 @@ Another thing which might help IN CASE OF TROUBLE, is to update the PATH and LD_
 variables with your cuda installation. Your CUDA installation might be found at '/usr/local/cuda' 
 (or similar). Lets say a variable CUDA_PATH contains your path, then an update can 
 be done by:
-
-        ```       
+    
         export PATH="${PATH}:${CUDA_PATH}/bin"
         export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${CUDA_PATH}/lib64"
-        ```
+
 
 
 ### e) .onnx files
@@ -181,21 +179,21 @@ specific location/path for the environment.
 Python venv is easy to use but you may use other solutions like e.g. conda.
 
 Create a new python environment with name e.g. 'asvtools_venv_gpu' 
-        ```
+
         python -m venv [defined_path_for_venv]/asvtools_venv_gpu
-        ```
-        (without the path it will be created in your home directory)
+
+(without the path it will be created in your home directory)
 
 
 The environment can always be activated by using
-        ```
+
         source [defined_path_of_venv]/asvtools_venv_gpu/bin/activate
-        ```
+
 Than the venv's name should occur in the beginnung of the shell prompt line.
 After usage it can be deactivated by simply typing:
-        ```
+
         deactivate
-        ```
+
 
 
 ### d) python packages
@@ -288,10 +286,10 @@ The basic idea of 'run_asvtools.py' file, is to start the following parts:
 
   As an example
   
-          ```
+
         amplitude=4000  # AREA='earth' , SV_VARS=[U,V]
         amplitude=500   # AREA='north_hemi' , SV_VARS=[T,U,V] 
-          ```
+
   This should be the order of magnitude, but it is an partly open question.
 
   You may also use the strategy to generate perturbations with a specific amplitude and 
@@ -303,9 +301,9 @@ The basic idea of 'run_asvtools.py' file, is to start the following parts:
 #### ii) prepare / clean folders
 
   Use 'asv.prep_arnoldi_dirs' in order to prepare and clean directories. E.g.:
-  		```
+
       	asv.prep_arnoldi_dirs(clean_input_dir=True, keep_Q=False)
-		```
+		
   clean_input_dir= True  - vanishes all the input data (in particular the reference state)
   After changing a particular day / reference state you should clean the input dir 
   otherwise you can keep it in order to save time.
@@ -337,10 +335,10 @@ The basic idea of 'run_asvtools.py' file, is to start the following parts:
   Inside 'run_asvtools.py' you may start 'get_icon_opendata.sh' using subprocess.
   e.g.:
   
-          ```
+
           subprocess.check_call(['bash', os.path.join(asv.c.SV_WORK_DIR,'get_icon_opendata.sh'), 
                 'opendata' , asv.c.SV_INPUT_DIR ] )
-          ```
+
   or place one or more analysis netcdf-files within
   iodir/input.
   
@@ -381,10 +379,10 @@ The basic idea of 'run_asvtools.py' file, is to start the following parts:
   If you provide a proper netcdf reference in the input folder the program should handle it.
   
   If you have an ICON-grid grib file you can use 
-      	```
+      	
     	./get_icon_opendata.sh    PATH_TO_DATA_ON_ICON_GRID_GRIBFILE   INPUT_DIR
-    	```
-  to transform it to a lat-lon netcdf file.
+    	
+  or inside python via subprocess to transform it to a lat-lon netcdf file.
   
   
   We recommand to use analysis data, where 'lat' and 'lon' data is included as keys / variables.
@@ -402,38 +400,38 @@ The basic idea of 'run_asvtools.py' file, is to start the following parts:
    If you have a suitable analysis state, the package needs to be done some small preparations.
    
    ref_file_path   -  path to yout input analysis reference state file
-        ```
+        
         asv.prepare_ref(ref_file_path,'begin')
-        ```
+        
    
 ii) - iv) need to be done only once for one reference state. If you do not want to change the 
 analysis / reference file you do not need to do these parts again. Use suitable parameter in a) to
 manage such a rerun (e.g. without a new download of data).
 
 The following command keeps the current reference state in the input directory.    
-        ```
+        
         asv.prep_arnoldi_dirs(clean_input_dir = False, keep_Q = False)
-        ```   
+           
 
 #### v) Start A-SV Generation.
-        ```
+        
         asv.arnoldi(amplitude)
-        ```      
+              
       
 #### vi) Forecast of perturbed states
 Afterwards you have the option to start a forecast of the generated perturbed states:
 
-        ```
+        
         leadtime=72     # in hours.
         asv.forecast_states(amplitude, leadtime) 
-        ```
+        
 
  
 To run the file, saving the output in a logfile might be suitable. E.g.
 
-        ```
+        
         python run_asvtools.py > some_logfile.log 
-        ```
+        
 Prefer a run as batch job.
 
 
