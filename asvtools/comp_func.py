@@ -7,7 +7,7 @@
 #    provided that the following conditions are met:
 #
 #    1. Redistributions of source code must retain the above copyright notice, this list of 
-#	conditions and the following disclaimer.
+#	    conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright notice, this list of 
 #    	conditions and the following disclaimer in the documentation and/or other materials 
@@ -15,7 +15,7 @@
 #
 #    3. Neither the name of the copyright holder nor the names of its contributors may be used to 
 #    	endorse or promote products derived from this software without specific prior written 
-#	permission.
+#	    permission.
 #
 #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR 
 #    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
@@ -28,7 +28,6 @@
 #    POSSIBILITY OF SUCH DAMAGE.
 #
 ###################################################################################################
-
 
 
 import netCDF4 as nC
@@ -51,7 +50,7 @@ import time
 
 __all__ = ["orthonormalize", "fill_dir_with_pert_states", "create_initial_vectors", 
             "prep_arnoldi_dirs", "write_run", "submit_run", "prepare_ref", "are_fc_states_avail",
-            "forecast_states", "getFreeGPUId"]
+            "forecast_states", "getFreeGPUId", "get_free_gpu_device_id"]
 
 ###################################################################################################
 def orthonormalize(state_list:list, variant:str='gram-schmidt', amplitude:int or float=1):
@@ -471,14 +470,13 @@ def getFreeGPUId():
         returns: a list of free GPU device IDs
     """
 
-    #if 'pycuda.autoinit' not in sys.modules:
     if 'cuda' not in sys.modules:
-            import pycuda.driver as cuda
-            import pycuda.autoinit
-    
+        #import torch
+        import torch.cuda as cuda
+
 
     # Get the number of available GPU devices
-    num_gpus = cuda.Device.count()
+    num_gpus = cuda.device_count()
 
     # Initialize a list to store the free GPU devices
     free_gpu_devices = []
@@ -486,10 +484,10 @@ def getFreeGPUId():
     # Iterate over the available GPU devices
     for i in range(num_gpus):
         # Get the current GPU device
-        device = cuda.Device(i)
+        device = cuda.device(i)
 
         # Check if the GPU device is available
-        if device.compute_capability() != (0, 0):
+        if cuda.get_device_capability() != (0, 0):
             free_gpu_devices.append(i)
 
 
@@ -497,6 +495,20 @@ def getFreeGPUId():
     return free_gpu_devices
 
 
+###################################################################################################
+
+# Get the current available GPU device
+def get_free_gpu_device_id():
+
+    if 'cuda' not in sys.modules:
+        #import torch
+        import torch.cuda as cuda
+
+    if cuda.is_available():
+        for device_id in range(cuda.device_count()):
+            if cuda.memory_allocated(device_id) == 0:
+                return device_id
+    return None  # No free GPU available
 
 
 ###################################################################################################
@@ -504,7 +516,7 @@ def getFreeGPUId():
 
 
 def submit_run(leadtime:int,
-                        save_interim_results:bool = False, run_mode:str = 'local',
+                        save_interim_results:bool = False,
                         job_name:str="eim_pang", out_forms:str='npy', include_ref = False):
                                                   # 'nc','npy','grib','all'
     """ function description:
@@ -519,175 +531,84 @@ def submit_run(leadtime:int,
 
     #an_file = os.path.join(c.SV_RUN_INPUT_DIR, c.RUN_INPUT_FILENAME)
     an_files = asv.get_filepath(c.SV_RUN_INPUT_DIR, variant='glob')
-    
-    #do not submit ; compute on this maschine / if the whole job is submitted to a machine this 
-    #                                           is the right choice.
-    if run_mode=='local':
-        
 
 
-        for i_file in range(len(an_files)):
-        #for member in range(ens_start, ens_end+1):
+    while len(an_files)>0:
+
+    #for i_file in range(len(an_files)):
 
 
-            free_gpus=[]
+        print(an_files)
 
-            if c.PROCESSUNIT in ['GPU']:
-                # Define the number of threads to use
-                free_gpus = getFreeGPUId()
-                print('free_gpus: '+str(free_gpus))
+        free_gpus=[]
 
-            # zero gpus
-            if len(free_gpus)==0 and c.PROCESSUNIT in ['GPU']:
-                print('wait for free gpu nodes')
-                time.sleep(4)
+        if c.PROCESSUNIT in ['GPU']:
+            # Define the number of threads to use
+            free_gpus = getFreeGPUId()
+            print('free_gpus: '+str(free_gpus))
 
-                            
-            # one gpu or just cpu
-            elif len(free_gpus) ==1 or c.PROCESSUNIT in ['CPU']:
-                
-                if c.MODEL in ['pangu_6']:
-                    run_pangu_6.main(an_files[i_file], leadtime,
-                        save_interim_results,out_forms=out_forms, 
-                                gpu_dev=-1)
-                elif c.MODEL in ['pangu_24']:
-                    run_pangu_24.main(an_files[i_file], leadtime,
-                        save_interim_results,out_forms=out_forms, 
-                                gpu_dev=-1)
-                else:
-                    raise NotImplementedError("please use 'pangu_6' or 'pangu_24'")
-                #time.sleep(1)
+        # zero gpus
+        if len(free_gpus)==0 and c.PROCESSUNIT in ['GPU']:
+            print('wait for free gpu nodes')
+            time.sleep(10)
 
-            #two or more gpus.
+                        
+        #  just cpu
+        elif c.PROCESSUNIT in ['CPU']:
+            
+            if c.MODEL in ['pangu_6']:
+                run_pangu_6.main(an_files[0], leadtime,
+                    save_interim_results,out_forms=out_forms, 
+                            gpu_dev=-1)
+            elif c.MODEL in ['pangu_24']:
+                run_pangu_24.main(an_files[0], leadtime,
+                    save_interim_results,out_forms=out_forms, 
+                            gpu_dev=-1)
             else:
+                raise NotImplementedError("please use 'pangu_6' or 'pangu_24'")
+            an_files.pop(0)                
+            #time.sleep(1)
 
-                n_threads = min(len(free_gpus) , len(an_files)-i_file ) 
+        #one or more gpus.
+        else:
 
-                # Use a ThreadPoolExecutor to run the function in parallel
-                with concurrent.futures.ThreadPoolExecutor(max_workers=n_threads) as executor:
-                    # Submit tasks to the executor
+            n_threads = min(len(free_gpus) , len(an_files), c.MAX_PARALLEL ) 
+
+            # Use a ThreadPoolExecutor to run the function in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=n_threads) as executor:
+                # Submit tasks to the executor
+                                         
+                free_dev_id = get_free_gpu_device_id()
+                futures=[]
+                for thread_i in range(0,n_threads): 
+                    free_dev_id = get_free_gpu_device_id()               
                     if c.MODEL in ['pangu_6']:
-                        futures = [executor.submit( run_pangu_6.main, 
-                                        *[an_files[i_file + gpu_i],leadtime, save_interim_results,
-                                        out_forms, free_gpus[gpu_i] ] 
-                                        ) for gpu_i in range(0,n_threads) ]
+                        futures.append(executor.submit( run_pangu_6.main, 
+                                    *[an_files[0],leadtime,save_interim_results,
+                                    out_forms, free_dev_id ])) 
                     elif c.MODEL in ['pangu_24']:
-                        futures = [executor.submit( run_pangu_24.main, 
-                                        *[an_files[i_file + gpu_i],leadtime, save_interim_results,
-                                        out_forms, free_gpus[gpu_i] ] 
-                                        ) for gpu_i in range(0,n_threads) ]
+                        futures.append(executor.submit( run_pangu_24.main, 
+                                    *[an_files[0],leadtime,save_interim_results,
+                                    out_forms, free_dev_id ]))
                     else:
                         raise NotImplementedError("please use 'pangu_6' or 'pangu_24'")
-                    
-                    i_file = i_file+n_threads
+                    an_files.pop(0)                        
+                    print(an_files)
 
-                    
-                    # Wait for all threads to complete
-                    #for future in concurrent.futures.as_completed(futures):
-                    #    pass
-
-                # Print a message after all threads have completed
-                print("Current threads have completed.")
-                                
-                #time.sleep(1)
-
-
-    # do an extra submit to a specific system. This will probably not your preffered choice.
-    # Try to submit the whole job. If you intend to use that feature, you have to adapt it to your
-    # system by your own.
-    elif run_mode == 'submit':
-    
-        print("WARNING: 'submit' does an extra qsub of the runs to your batch system. "+ 
-                "This will probably not your preffered prefered choice. "+ 
-                "Rather submit the whole job and use 'local'. "+ 
-                "If you intend to use that option anyway, you have to adapt it to your system"+ 
-                "by your own, in particular the 'qsub_inference_cpu.default' file.")
-                
-        if c.MODEL in ['pangu_24', 'pangu_6']:
-            raise NotImplementedError("please use currently RUN_MODEL='local'")
-
-        if c.PROCESSUNIT in ['CPU']:
-
-            #TODO: Übergabe verbessern
-
-            an_file = os.path.join(c.SV_RUN_INPUT_DIR, c.RUN_INPUT_FILENAME)
-            #TODO: if out_forms= .. dann 'all'
-    
-            batch_block = 1
-
-            ens_end = c.BLOCK_SIZE
-            if include_ref:
-                ens_start=0
-            else:
-                ens_start=1
-
-            j=ens_start
-
-
-            qsub_file_default = os.path.join(c.SV_WORK_DIR, 'qsub_inference_cpu.default')
-
-
-            while j <= ens_end:
+                # Wait for all threads to complete
+                #for future in concurrent.futures.as_completed(futures):
+                #    pass
             
-                ens_start_i=j
-                ens_end_i = min(ens_end , ens_start_i+batch_block)    
-                if j == 0:
 
-                    job_name_curr = job_name+'_det'
-                    qsub_file_curr = os.path.join(c.SV_WORK_DIR,'qsub_inference_cpu_det.sh')
-                    ens_start_i=ens_end_i=0                    
-                    j=1
-                    an_det_file = os.path.join(c.SV_RUN_INPUT_DIR, c.SV_REF_STATE_BEGIN_NAME)
-                    replace=([an_det_file,   str(leadtime),   c.PY_VENV_PATH,   c.SV_WORK_DIR, 
-                            job_name_curr, str(ens_start_i),  str(ens_end_i), 
-                                str(int(save_interim_results)),  out_forms])
-
-                else:
-                    batch_block_str = str(ens_start_i)+'_'+str(ens_end_i)
-
-                    job_name_curr = job_name+ batch_block_str
-                    qsub_file_curr = os.path.join(c.SV_WORK_DIR, 
-                                            "qsub_inference_cpu_"+batch_block_str+".sh")
-                    j = ens_end_i+1
-                    replace=([an_file,   str(leadtime),   c.PY_VENV_PATH,   c.SV_WORK_DIR, 
-                            job_name_curr, str(ens_start_i),  str(ens_end_i), 
-                                str(int(save_interim_results)),  out_forms])
-
-
-                #      qsub_file_curr = os.path.join(c.SV_WORK_DIR, 'qsub_interference_cpu.sh')
-
-                
-                search=(['%AN_FILE_LL%','%LEADTIME%','%PY_VENV_PATH%','%WORK_DIR%',     
-                            '%JOB_NAME%', '%ENS_START%',  '%ENS_END%' , 
-                                '%SAVE_INTERIM_RES%', '%OUT_FORMS%'])
-
-                
-                _multi_sed(search,replace, qsub_file_default, qsub_file_curr)
-
-
-                process = subprocess.run(['qsubw', '-h', '-E', '2', qsub_file_curr]) 
-                #process = subprocess.Popen(['qsubw', '-h', '-E', '2', qsub_file_curr],shell=True) 
-
-
-                time.sleep(3)
-
-
-		        #echo $j
-            #endloop
-
-
-        
-        elif c.PROCESSUNIT in ['GPU']:
-            raise NotImplementedError("PROCESSUNT=GPU is not implemented for 'submit'. "+
-                                "Please Use 'local'.")
-    else:
-        raise ValueError("unvalid value. choose 'submit' or 'local'")
-
+            # Print a message after all threads have completed
+            print("Current threads have completed.")
+                            
+            #time.sleep(1)
 
 
 
 ###################################################################################################
-def are_fc_states_avail(expect_num:int=c.BLOCK_SIZE, wait_min=30):
+def are_fc_states_avail(expect_num:int=c.BLOCK_SIZE, wait_min=21):
     """ funcion description:
         waits until runs (of loops) are finished or until a allowed period of waiting is over.
         
@@ -696,6 +617,7 @@ def are_fc_states_avail(expect_num:int=c.BLOCK_SIZE, wait_min=30):
     """
 
     
+    # NOTE: should be renewed. originally from older version.
 
     t_end = time.time() + 60 * wait_min
 
@@ -709,8 +631,7 @@ def are_fc_states_avail(expect_num:int=c.BLOCK_SIZE, wait_min=30):
             
         elif len(paths) < expect_num:
             print('loop not ready. wait 15 seconds')
-            if c.RUN_MODE == 'submit':
-                subprocess.run(['qstat'])
+            
             time.sleep(15)
         elif len(paths) > expect_num:
             print("WARNING: unexpected high number of forecasted states")
@@ -801,11 +722,13 @@ def write_run(states_energy , amplitude:int or float, leadtime= c.T_OPT,
     asv.clean_dir(c.SV_RUN_OUTPUT_DIR)
      
     submit_run(leadtime = leadtime , save_interim_results = save_interim_results, 
-                run_mode=c.RUN_MODE, job_name="eim_pang_", out_forms='npy', include_ref=first_loop)
+                job_name="eim_pang_", out_forms='npy', include_ref=first_loop)
     # RUN STARTED
     
     # waits for finished runloop.
     are_fc_states_avail(c.BLOCK_SIZE+int(first_loop))       
+
+
 
     # gets run_output paths.
     paths_run_output = asv.get_filepath('run_output')
@@ -937,7 +860,7 @@ def forecast_states(amplitude:int,leadtime:int, an_date:int,state_list='sv1'):
     ####################
 
     print('') 
-    submit_run(leadtime = leadtime , save_interim_results = True, run_mode=c.RUN_MODE,
+    submit_run(leadtime = leadtime , save_interim_results = True,
                         job_name="eim_pang_", out_forms=c.OUT_FORECAST_FORMATS, include_ref=True)
     
     # RUN STARTED
@@ -961,6 +884,7 @@ def forecast_states(amplitude:int,leadtime:int, an_date:int,state_list='sv1'):
         dest_file_path = os.path.join(out_fc_dir, file_name)
         os.rename(fc_file_paths[i] , dest_file_path )
     
+    del Q
 
     print('finished')
    
@@ -968,4 +892,3 @@ def forecast_states(amplitude:int,leadtime:int, an_date:int,state_list='sv1'):
 
 ###################################################################################################
 ###################################################################################################
-
