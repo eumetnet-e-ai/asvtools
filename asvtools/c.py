@@ -133,7 +133,7 @@ MODEL='pangu_24'                                # 'pangu_24','pangu_6'
 # model running parameter
 
 PROCESSUNIT='GPU'                              # 'CPU' / 'GPU' 
-MAX_PARALLEL=5          # It might nessecary on your machine the limit the number of maximal 
+MAX_PARALLEL=8          # It might nessecary on your machine the limit the number of maximal 
                         # parallel runs. This is in particular the case if you have n divices but
                         # but the required memory for n parallel runs is too large.
                         # If you get memory related errors and the loops can not be completed try
