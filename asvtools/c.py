@@ -7,7 +7,7 @@
 #    provided that the following conditions are met:
 #
 #    1. Redistributions of source code must retain the above copyright notice, this list of 
-#	conditions and the following disclaimer.
+#	    conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright notice, this list of 
 #    	conditions and the following disclaimer in the documentation and/or other materials 
@@ -15,7 +15,7 @@
 #
 #    3. Neither the name of the copyright holder nor the names of its contributors may be used to 
 #    	endorse or promote products derived from this software without specific prior written 
-#	permission.
+#	    permission.
 #
 #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR 
 #    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
@@ -28,8 +28,6 @@
 #    POSSIBILITY OF SUCH DAMAGE.
 #
 ###################################################################################################
-
-
 
 ###################################################################################################
 ### ASV NAMELIST - (almost) bash style.
@@ -103,17 +101,17 @@ OUT_FORECAST_FORMATS=['npy']                  # choose 1,2 or 3 out of: 'npy','n
 # Suitable BLOCK_SIZE Values depend on your machine. A number equal your .. ()..
 
 LOOPS=2                                         # multiply of BLOCK_SIZE and LOOPS defines the
-BLOCK_SIZE=2                                    # size of Krylov-Subspace
+BLOCK_SIZE=5                                    # size of Krylov-Subspace
                                                 # choose for real experiments a at least 
                                                 # BLOCK_SIZE*LOOPS > 30
                                                 
 
-SV_CUTOF=21                                     # de facto => min( (LOOPS*BLOCK_SIZE) ; SV_CUTOF )
-SV_NRS=[0,1,8]                                  # Which SV to be forecasted afterwards?(null index)
+SV_CUTOF=70                                     # de facto => min( (LOOPS*BLOCK_SIZE) ; SV_CUTOF )
+SV_NRS=[0,1,8,16,32,64]                      # Which SV to be forecasted afterwards?(null index)
                                                 # Indices larger the subspace-size or SV_CUTOF
                                                 #   value are ignored.
 
-T_OPT=48                                        # needs to be a mult of n (for pangu_n)
+T_OPT=24                                        # needs to be a mult of n (for pangu_n)
                                                 # 
 
 SV_VARS=[T,U,V,T_2M,U_10M,V_10M]
@@ -135,16 +133,11 @@ MODEL='pangu_24'                                # 'pangu_24','pangu_6'
 # model running parameter
 
 PROCESSUNIT='GPU'                              # 'CPU' / 'GPU' 
- 
-RUN_MODE='local'                                
-                        # 'local' - run all the inferences on same machine as whole program.  
-                        # 'submit'- submit the inferences to a seperate batch system.
-			# Note: 'submit' will probably not work on your machine since its needed 
-			# to be adjust to your environment ( but it is not nessecary to be used). 
-			# We recommand to run just everything 
-			# ('run_asvtools.py') as batch job / submit with 
-			# qsub. Than 'local' will be your choice. 
-
+MAX_PARALLEL=5          # It might nessecary on your machine the limit the number of maximal 
+                        # parallel runs. This is in particular the case if you have n divices but
+                        # but the required memory for n parallel runs is too large.
+                        # If you get memory related errors and the loops can not be completed try
+                        # lower the MAX_PARALLEL number.              
 #################################################						
 
                                                 
@@ -192,7 +185,6 @@ META_KEYS = (['md:area','time',LAT,LON, LEVEL, 'gptype',
 
 ###################################################################################################
 ###################################################################################################
-
 
 
 
