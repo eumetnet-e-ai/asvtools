@@ -84,15 +84,13 @@ Of course, netcdf and eccodes must be installed before.
 Use python with a specific environment (see below).
 Python 3 is required with following packages:
     netCDF4 , os, numpy, subprocess, xarray, glob, shutil, math, copy, sys, argparse, datetime,
-    re, time, concurrent.futures, pycuda.driver, pycuda.autoinit
-We do not provide a specific requirements file for asvtools. Probably you have an environment
-by your own, which contains most of these packages.
+    re, time, concurrent.futures, torch
 
 Addionally you need python packages
         onnx 
     	    and either
         onnxruntime (for CPU) OR onnxruntime-gpu (for GPU) 
-depending on your system. Do not install both at the same time. You may use two different 
+depending on your system. Do not install both at the same time. You should use two different 
 environments. See following section.
 
 Depending on your system, you might need to have special attention on your Nvidia specific software
@@ -106,6 +104,9 @@ recommand this by using the following command:
 Evtually see the CUDAExecutionProvider relevant sections in the 'run_pangu_X.py' files and read the 
 [onnxruntime docs](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html).
 
+You may use the provided requirements files (requirements_cpu.txt / requirements_gpu.txt) for 
+installation ( pip install -r requirements_cpu.txt OR requirements_gpu.txt ) but check for your own
+as well. 
 
 Another thing which might help IN CASE OF TROUBLE, is to update the PATH and LD_LIBRARY_PATH 
 variables with your cuda installation. Your CUDA installation might be found at '/usr/local/cuda' 
@@ -134,19 +135,21 @@ You need the 'pangu_weather_24.onnx' and 'pangu_weather_6.onnx' files. Use links
 
 
 ### f) Our environment
-
 In order to make our setting transparent, we provide the software configuration we used
 
 Python 3.10.11 with
+
 numpy==1.26.1
-onnx==1.20.0 (previously also 1.12.0)
-onnxruntime-gpu==1.23.2 (previously also 1.19.2) 
+onnx==1.20.0
+onnxruntime-gpu==1.23.2
 xarray==2023.6.0
 netCDF4==1.6.4
-eccodes==1.6.1. We used 'onnxruntime-gpu[cuda,cudnn]' (see above). 
+eccodes==1.6.1. 
+onnxruntime-gpu[cuda,cudnn]     
 
+(Previously also used onnx==1.12.0 and onnxruntime-gpu==1.19.2)
 
-Addionally also
+Addionally also:
 cdo 2.5.2.
 eccodes 2.32.0
 CUDA 12.4
