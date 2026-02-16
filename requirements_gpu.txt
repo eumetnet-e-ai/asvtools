@@ -1,0 +1,6 @@
+netCDF4
+numpy
+xarray
+torch
+onnx
+onnxruntime-gpu
